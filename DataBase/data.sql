@@ -239,3 +239,49 @@ INSERT INTO bitacora_auditoria (id, usuario_id, fecha_hora, accion_realizada, ta
 (18, 17, '2026-11-18 11:10:00', 'APROBACION_VISITA', 'visitas', 17, '{"funcionario": "Natalia Rios"}'),
 (19, 2, '2026-11-18 12:00:00', 'CHECK_OUT_BIOMETRICO', 'visitas', 1, '{"coincidencia": "99.5%"}'),
 (20, 6, '2026-11-18 12:05:00', 'CREACION_INCIDENTE', 'incidentes', 20, '{"gravedad": "Baja"}');
+
+-- =====================================================================
+-- 1. CATÁLOGOS DE TOKENS (Tipos y Estados)
+-- =====================================================================
+
+INSERT INTO tipos_token (id, nombre_tipo) VALUES
+(1, 'PIN_Numerico'),
+(2, 'Codigo_QR'),
+(3, 'Codigo_Barras');
+
+INSERT INTO token_estados (id, nombre_estado) VALUES
+(1, 'Emitido'),   -- Listo para ser usado en portería
+(2, 'Usado'),     -- Ya fue escaneado/digitado exitosamente
+(3, 'Expirado'),  -- Pasó la fecha límite sin ser usado
+(4, 'Revocado');  -- El funcionario canceló la visita antes de tiempo
+
+-- (OPCIONAL) Recuerda agregar estos nuevos métodos al catálogo general si no lo hiciste:
+-- INSERT INTO metodos_acceso (nombre_metodo) VALUES ('Lector_QR'), ('Teclado_PIN');
+
+-- =====================================================================
+-- 2. TRANSACCIONES DE TOKENS DE ACCESO (20 Registros)
+-- =====================================================================
+
+-- Enlazamos estos tokens a los IDs de la tabla 'visitas' (del 1 al 20)
+-- Utilizamos fechas consistentes con el mes de Noviembre de 2026
+INSERT INTO tokens_acceso (id, visita_id, codigo_token, tipo_token_id, estado_token_id, fecha_emision, fecha_expiracion) VALUES
+(1, 1, '834921', 1, 2, '2026-11-17 14:00:00', '2026-11-18 23:59:59'),          -- Usado (Trabajador o invitado que ya ingresó)
+(2, 2, 'QR-A1B2C3D4E5', 2, 2, '2026-11-17 15:30:00', '2026-11-18 23:59:59'),   -- Usado (Visitante dentro del complejo)
+(3, 3, 'CB-9988776655', 3, 2, '2026-11-18 06:00:00', '2026-11-18 18:00:00'),   -- Usado
+(4, 4, '159263', 1, 1, '2026-11-18 07:45:00', '2026-11-18 23:59:59'),          -- Emitido (El invitado tiene el PIN, aún no entra)
+(5, 5, 'QR-X9Y8Z7W6V5', 2, 2, '2026-11-16 10:00:00', '2026-11-18 23:59:59'),   -- Usado
+(6, 6, '482019', 1, 2, '2026-11-18 08:00:00', '2026-11-18 23:59:59'),          -- Usado
+(7, 7, 'QR-F6G7H8I9J0', 2, 2, '2026-11-18 08:10:00', '2026-11-19 23:59:59'),   -- Usado
+(8, 8, 'CB-1122334455', 3, 1, '2026-11-18 08:30:00', '2026-11-18 23:59:59'),   -- Emitido (Proveedor con código de barras en ruta)
+(9, 9, '739104', 1, 2, '2026-11-17 09:00:00', '2026-11-18 12:00:00'),          -- Usado
+(10, 10, 'QR-M4N5O6P7Q8', 2, 4, '2026-11-18 09:00:00', '2026-11-18 18:00:00'), -- Revocado (El funcionario canceló la visita)
+(11, 11, '610293', 1, 2, '2026-11-18 09:15:00', '2026-11-18 23:59:59'),          -- Usado
+(12, 12, 'QR-R1S2T3U4V5', 2, 1, '2026-11-18 09:30:00', '2026-11-18 23:59:59'),   -- Emitido
+(13, 13, 'CB-5544332211', 3, 2, '2026-11-17 10:00:00', '2026-11-18 23:59:59'),   -- Usado
+(14, 14, '902145', 1, 2, '2026-11-18 10:15:00', '2026-11-18 23:59:59'),          -- Usado
+(15, 15, 'QR-W9X8Y7Z6A5', 2, 2, '2026-11-18 10:30:00', '2026-11-18 23:59:59'),   -- Usado
+(16, 16, '384756', 1, 3, '2026-11-15 08:00:00', '2026-11-15 23:59:59'),          -- Expirado (Persona no vino en la fecha acordada)
+(17, 17, 'QR-B1C2D3E4F5', 2, 1, '2026-11-18 11:00:00', '2026-11-19 23:59:59'),   -- Emitido
+(18, 18, 'CB-6677889900', 3, 2, '2026-11-18 11:15:00', '2026-11-18 23:59:59'),   -- Usado
+(19, 19, '571920', 1, 2, '2026-11-18 11:30:00', '2026-11-18 23:59:59'),          -- Usado
+(20, 20, 'QR-G6H7I8J9K0', 2, 1, '2026-11-18 11:45:00', '2026-11-18 23:59:59');   -- Emitido

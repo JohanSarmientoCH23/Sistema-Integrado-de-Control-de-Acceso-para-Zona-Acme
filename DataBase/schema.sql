@@ -196,3 +196,29 @@ CREATE TABLE bitacora_auditoria (
     detalles JSON,
     FOREIGN KEY (usuario_id) REFERENCES usuarios(id)
 );
+
+-- =====================================================================
+-- 7. GESTIÓN DE TOKENS DE ACCESO
+-- =====================================================================
+CREATE TABLE tipos_token (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    nombre_tipo VARCHAR(50) UNIQUE NOT NULL -- Ej: 'PIN_Numerico', 'QR', 'Codigo_Barras'
+);
+
+CREATE TABLE token_estados (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    nombre_estado VARCHAR(50) UNIQUE NOT NULL -- Ej: 'Emitido', 'Usado', 'Expirado', 'Revocado'
+);
+
+CREATE TABLE tokens_acceso (
+    id BIGINT AUTO_INCREMENT PRIMARY KEY,
+    visita_id INT NOT NULL, 
+    codigo_token VARCHAR(255) UNIQUE NOT NULL, -- El PIN o el hash del QR
+    tipo_token_id INT NOT NULL,
+    estado_token_id INT NOT NULL,
+    fecha_emision DATETIME DEFAULT CURRENT_TIMESTAMP,
+    fecha_expiracion DATETIME NOT NULL,
+    FOREIGN KEY (visita_id) REFERENCES visitas(id) ON DELETE CASCADE,
+    FOREIGN KEY (tipo_token_id) REFERENCES tipos_token(id),
+    FOREIGN KEY (estado_token_id) REFERENCES token_estados(id)
+);
