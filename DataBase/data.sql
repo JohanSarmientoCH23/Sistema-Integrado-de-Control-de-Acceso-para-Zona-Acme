@@ -1,8 +1,9 @@
+USE defaultdb;
+
 -- =====================================================================
 -- 1. CATÁLOGOS Y CONFIGURACIONES (Lookup Tables)
 -- =====================================================================
 
--- 20 Permisos granulares para tu RBAC
 INSERT INTO permisos (id, nombre_permiso, descripcion) VALUES
 (1, 'crear_usuario', 'Permite crear nuevos usuarios'),
 (2, 'editar_usuario', 'Permite modificar usuarios existentes'),
@@ -13,7 +14,7 @@ INSERT INTO permisos (id, nombre_permiso, descripcion) VALUES
 (7, 'ver_empresas', 'Permite listar empresas del complejo'),
 (8, 'crear_persona', 'Permite registrar trabajadores o invitados'),
 (9, 'editar_persona', 'Permite modificar datos de personas'),
-(10, 'bloquear_persona', 'Cambia el estado a prohibición de ingreso'),
+(10, 'bloquear_persona', 'Cambia el estado a prohibicion de ingreso'),
 (11, 'registrar_visita_manual', 'Permite asentar ingresos manualmente'),
 (12, 'aprobar_visita', 'Aprueba ingresos de invitados no anunciados'),
 (13, 'rechazar_visita', 'Rechaza ingresos de invitados'),
@@ -21,26 +22,27 @@ INSERT INTO permisos (id, nombre_permiso, descripcion) VALUES
 (15, 'reportar_incidente', 'Permite crear un registro de incidente'),
 (16, 'ver_incidentes', 'Permite listar incidentes de seguridad'),
 (17, 'generar_reporte_visitas', 'Exporta historial de visitas'),
-(18, 'generar_reporte_auditoria', 'Exporta la bitácora del sistema'),
+(18, 'generar_reporte_auditoria', 'Exporta la bitacora del sistema'),
 (19, 'gestionar_roles', 'Permite asignar roles a usuarios'),
 (20, 'gestionar_biometria', 'Permite actualizar vectores faciales');
 
--- Roles principales
 INSERT INTO roles (id, nombre_rol) VALUES
 (1, 'Superusuario'), (2, 'Supervisor de Seguridad'), (3, 'Guarda de Entrada Principal'),
 (4, 'Guarda de Parqueadero'), (5, 'Funcionario RRHH'), (6, 'Gerente de Empresa'),
 (7, 'Auditor Externo'), (8, 'Administrador del Complejo');
 
--- Asignación de 20 permisos (Ejemplo distribuyendo entre roles)
 INSERT INTO rol_permisos (rol_id, permiso_id) VALUES
-(1,1),(1,2),(1,3),(1,5),(1,8),(1,10),(1,15),(1,18),(1,19),(1,20), -- Superusuario
-(2,4),(2,7),(2,10),(2,15),(2,16),(2,17),                        -- Supervisor
-(3,4),(3,11),(3,15),                                            -- Guarda
-(5,8),(5,9),(5,12);                                             -- RRHH
+(1,1),(1,2),(1,3),(1,5),(1,8),(1,10),(1,15),(1,18),(1,19),(1,20),
+(2,4),(2,7),(2,10),(2,15),(2,16),(2,17),
+(3,4),(3,11),(3,15),
+(5,8),(5,9),(5,12);
 
--- Catálogos de Dominio (Valores lógicos de negocio)
-INSERT INTO tipos_persona (id, nombre_tipo) VALUES 
-(1, 'Trabajador'), (2, 'Invitado'), (3, 'Contratista'), (4, 'Proveedor'), (5, 'Auditor');
+INSERT INTO tipos_persona (id, nombre_tipo, descripcion) VALUES 
+(1, 'Trabajador', 'Empleado directo de una empresa del complejo'),
+(2, 'Invitado', 'Visitante ocasional o cliente'),
+(3, 'Contratista', 'Personal externo con labores temporales'),
+(4, 'Proveedor', 'Personal de entregas o suministros'),
+(5, 'Auditor', 'Personal de revision externa');
 
 INSERT INTO persona_estados_acceso (id, nombre_estado) VALUES 
 (1, 'Activo'), (2, 'Inactivo'), (3, 'Suspendido Temporalmente'), (4, 'Prohibicion Definitiva');
@@ -55,10 +57,16 @@ INSERT INTO tipos_correo (id, nombre_tipo) VALUES
 (1, 'Corporativo Principal'), (2, 'Personal'), (3, 'Facturacion'), (4, 'Soporte IT');
 
 INSERT INTO metodos_acceso (id, nombre_metodo) VALUES 
-(1, 'Manual_Documento'), (2, 'Biometrico_Camara'), (3, 'Tarjeta_RFID'), (4, 'App_Movil_QR');
+(1, 'Manual_Documento'), (2, 'Biometrico_Camara'), (3, 'Tarjeta_RFID'), (4, 'Escaneo_QR'), (5, 'PIN_Digitado');
+
+INSERT INTO tipos_token (id, nombre_tipo) VALUES
+(1, 'PIN_Numerico'), (2, 'Codigo_QR'), (3, 'Codigo_Barras');
+
+INSERT INTO token_estados (id, nombre_estado) VALUES
+(1, 'Emitido'), (2, 'Usado'), (3, 'Expirado'), (4, 'Revocado');
 
 -- =====================================================================
--- 2. USUARIOS (20 Registros)
+-- 2. USUARIOS Y ROLES (20 Registros)
 -- =====================================================================
 
 INSERT INTO usuarios (id, nombre, email, password, esta_activo) VALUES
@@ -83,7 +91,6 @@ INSERT INTO usuarios (id, nombre, email, password, esta_activo) VALUES
 (19, 'Paula Navarro', 'pnavarro@marketing.com', '$2a$10$hash...', 1),
 (20, 'Roberto Blanco', 'rblanco@mantenimiento.com', '$2a$10$hash...', 1);
 
--- 20 Asignaciones de Roles
 INSERT INTO usuario_roles (usuario_id, rol_id) VALUES
 (1,1), (2,2), (3,5), (4,6), (5,5), (6,3), (7,6), (8,5), (9,5), (10,4),
 (11,5), (12,1), (13,5), (14,7), (15,6), (16,3), (17,8), (18,6), (19,5), (20,4);
@@ -93,23 +100,23 @@ INSERT INTO usuario_roles (usuario_id, rol_id) VALUES
 -- =====================================================================
 
 INSERT INTO empresas (id, nombre) VALUES
-(1, 'Campus Lands S.A.S.'), (2, 'Avícola ERP Solutions'), (3, 'Tech Santander'), (4, 'Logística Acme'),
+(1, 'Campus Lands S.A.S.'), (2, 'Avicola ERP Solutions'), (3, 'Tech Santander'), (4, 'Logistica Acme'),
 (5, 'Desarrollos Hexagonales'), (6, 'AgroData Colombia'), (7, 'Finanzas del Oriente'), (8, 'Inversiones Bucaramanga'),
 (9, 'Cloud Systems S.A.'), (10, 'Seguridad Inteligente'), (11, 'Redes y Fibras'), (12, 'Constructora Bellomonte'),
-(13, 'Mantenimiento Industrial'), (14, 'Consultoría Legal Acme'), (15, 'Importaciones Globales'), (16, 'DataCenters Andinos'),
-(17, 'Agencia de Marketing Digital'), (18, 'Distribuidora de Alimentos'), (19, 'Software a la Medida'), (20, 'Clínica Oftalmológica Acme');
+(13, 'Mantenimiento Industrial'), (14, 'Consultoria Legal Acme'), (15, 'Importaciones Globales'), (16, 'DataCenters Andinos'),
+(17, 'Agencia de Marketing Digital'), (18, 'Distribuidora de Alimentos'), (19, 'Software a la Medida'), (20, 'Clinica Oftalmologica Acme');
 
 INSERT INTO contactos_empresa (id, empresa_id, nombre_contacto, cargo) VALUES
-(1, 1, 'Juan Director', 'Director Académico'), (2, 2, 'Pedro Avícola', 'Gerente de Producción'),
-(3, 3, 'Maria Tech', 'CTO'), (4, 4, 'Luis Logística', 'Jefe de Despachos'),
-(5, 5, 'Ana Dev', 'Arquitecta de Software'), (6, 6, 'Carlos Agro', 'Ingeniero Agrónomo'),
+(1, 1, 'Juan Director', 'Director Academico'), (2, 2, 'Pedro Avicola', 'Gerente de Produccion'),
+(3, 3, 'Maria Tech', 'CTO'), (4, 4, 'Luis Logistica', 'Jefe de Despachos'),
+(5, 5, 'Ana Dev', 'Arquitecta de Software'), (6, 6, 'Carlos Agro', 'Ingeniero Agronomo'),
 (7, 7, 'Elena Finanzas', 'CFO'), (8, 8, 'Jorge Inversor', 'CEO'),
 (9, 9, 'Laura Nube', 'SysAdmin'), (10, 10, 'Diego Security', 'Jefe de Seguridad'),
 (11, 11, 'Sofia Redes', 'Gerente de Infraestructura'), (12, 12, 'Andres Constructor', 'Ingeniero Residente'),
-(13, 13, 'Camila Mantenimiento', 'Coordinadora SST'), (14, 14, 'Felipe Abogado', 'Asesor Jurídico'),
+(13, 13, 'Camila Mantenimiento', 'Coordinadora SST'), (14, 14, 'Felipe Abogado', 'Asesor Juridico'),
 (15, 15, 'Diana Imports', 'Gerente de Aduanas'), (16, 16, 'Oscar Data', 'DBA Principal'),
 (17, 17, 'Natalia Marketing', 'CMO'), (18, 18, 'Ivan Alimentos', 'Jefe de Bodega'),
-(19, 19, 'Paula Code', 'Scrum Master'), (20, 20, 'Roberto Doctor', 'Director Médico');
+(19, 19, 'Paula Code', 'Scrum Master'), (20, 20, 'Roberto Doctor', 'Director Medico');
 
 INSERT INTO telefonos_contacto (id, contacto_id, numero_telefono, tipo_telefono_id) VALUES
 (1, 1, '3101112233', 1), (2, 2, '3112223344', 2), (3, 3, '3123334455', 5), (4, 4, '6076431111', 3), (5, 5, '3134445566', 1),
@@ -124,31 +131,36 @@ INSERT INTO correos_contacto (id, contacto_id, email, tipo_correo_id) VALUES
 (16, 16, 'oscar@data.com', 4), (17, 17, 'natalia@marketing.com', 1), (18, 18, 'ivan@alimentos.com', 1), (19, 19, 'paula@software.com', 1), (20, 20, 'roberto@clinica.com', 1);
 
 -- =====================================================================
--- 4. PERSONAS Y PERFILES (20 Registros)
+-- 4. PERSONAS, PERFILES Y VEHÍCULOS (20 Registros)
 -- =====================================================================
 
 INSERT INTO personas (id, nombre, documento_identidad, url_foto, vector_biometrico) VALUES
-(1, 'Sebastian Chaves', '1098000111', 'url/foto1.jpg', '[-0.1, 0.5, 0.9, 0.2]'), (2, 'Alberto Ruiz', '1098000222', 'url/foto2.jpg', '[0.2, -0.1, 0.8, 0.3]'),
-(3, 'Camila Londoño', '1098000333', 'url/foto3.jpg', '[0.3, 0.2, -0.4, 0.5]'), (4, 'Daniela Vargas', '1098000444', 'url/foto4.jpg', '[-0.5, 0.3, 0.7, -0.2]'),
-(5, 'Eduardo Mejia', '1098000555', 'url/foto5.jpg', '[0.6, -0.4, 0.2, 0.1]'), (6, 'Fabian Nuñez', '1098000666', 'url/foto6.jpg', '[-0.2, 0.8, -0.1, 0.4]'),
-(7, 'Gabriela Pinto', '1098000777', 'url/foto7.jpg', '[0.1, 0.1, 0.1, 0.9]'), (8, 'Hector Reyes', '1098000888', 'url/foto8.jpg', '[0.9, -0.9, 0.5, 0.5]'),
-(9, 'Isabel Castro', '1098000999', 'url/foto9.jpg', '[-0.3, -0.3, 0.6, 0.6]'), (10, 'Julio Cesar', '1098001000', 'url/foto10.jpg', '[0.4, 0.5, 0.6, 0.7]'),
-(11, 'Karen Pardo', '1098001111', 'url/foto11.jpg', '[-0.7, 0.2, 0.2, -0.4]'), (12, 'Leonardo Gil', '1098001222', 'url/foto12.jpg', '[0.8, 0.4, -0.5, 0.2]'),
-(13, 'Monica Salas', '1098001333', 'url/foto13.jpg', '[0.5, 0.5, 0.5, -0.5]'), (14, 'Nestor Cruz', '1098001444', 'url/foto14.jpg', '[-0.6, -0.6, -0.6, 0.1]'),
-(15, 'Olga Marina', '1098001555', 'url/foto15.jpg', '[0.1, 0.9, 0.2, 0.8]'), (16, 'Pablo Emilio', '1098001666', 'url/foto16.jpg', '[0.7, -0.2, 0.3, -0.9]'),
-(17, 'Quintin Banderas', '1098001777', 'url/foto17.jpg', '[-0.8, 0.7, -0.4, 0.3]'), (18, 'Rosa Melano', '1098001888', 'url/foto18.jpg', '[0.2, 0.2, 0.9, -0.1]'),
-(19, 'Santiago Mora', '1098001999', 'url/foto19.jpg', '[0.3, -0.8, 0.1, 0.4]'), (20, 'Tatiana Roa', '1098002000', 'url/foto20.jpg', '[-0.9, 0.1, -0.7, 0.5]');
+(1, 'Sebastian Chaves', '1098000111', 'url/foto1.jpg', '[-0.1, 0.5, 0.9, 0.2]'),
+(2, 'Alberto Ruiz', '1098000222', 'url/foto2.jpg', '[0.2, -0.1, 0.8, 0.3]'),
+(3, 'Camila Londono', '1098000333', 'url/foto3.jpg', '[0.3, 0.2, -0.4, 0.5]'),
+(4, 'Daniela Vargas', '1098000444', 'url/foto4.jpg', '[-0.5, 0.3, 0.7, -0.2]'),
+(5, 'Eduardo Mejia', '1098000555', 'url/foto5.jpg', '[0.6, -0.4, 0.2, 0.1]'),
+(6, 'Fabian Nunez', '1098000666', 'url/foto6.jpg', '[-0.2, 0.8, -0.1, 0.4]'),
+(7, 'Gabriela Pinto', '1098000777', 'url/foto7.jpg', '[0.1, 0.1, 0.1, 0.9]'),
+(8, 'Hector Reyes', '1098000888', 'url/foto8.jpg', '[0.9, -0.9, 0.5, 0.5]'),
+(9, 'Isabel Castro', '1098000999', 'url/foto9.jpg', '[-0.3, -0.3, 0.6, 0.6]'),
+(10, 'Julio Cesar', '1098001000', 'url/foto10.jpg', '[0.4, 0.5, 0.6, 0.7]'),
+(11, 'Karen Pardo', '1098001111', 'url/foto11.jpg', '[-0.7, 0.2, 0.2, -0.4]'),
+(12, 'Leonardo Gil', '1098001222', 'url/foto12.jpg', '[0.8, 0.4, -0.5, 0.2]'),
+(13, 'Monica Salas', '1098001333', 'url/foto13.jpg', '[0.5, 0.5, 0.5, -0.5]'),
+(14, 'Nestor Cruz', '1098001444', 'url/foto14.jpg', '[-0.6, -0.6, -0.6, 0.1]'),
+(15, 'Olga Marina', '1098001555', 'url/foto15.jpg', '[0.1, 0.9, 0.2, 0.8]'),
+(16, 'Pablo Emilio', '1098001666', 'url/foto16.jpg', '[0.7, -0.2, 0.3, -0.9]'),
+(17, 'Quintin Banderas', '1098001777', 'url/foto17.jpg', '[-0.8, 0.7, -0.4, 0.3]'),
+(18, 'Rosa Mendoza', '1098001888', 'url/foto18.jpg', '[0.2, 0.2, 0.9, -0.1]'),
+(19, 'Santiago Mora', '1098001999', 'url/foto19.jpg', '[0.3, -0.8, 0.1, 0.4]'),
+(20, 'Tatiana Roa', '1098002000', 'url/foto20.jpg', '[-0.9, 0.1, -0.7, 0.5]');
 
--- Asignación de perfiles a las empresas (1: Trabajador, 2: Invitado, etc. / 1: Activo, 4: Prohibido)
 INSERT INTO perfiles_persona (id, persona_id, empresa_id, tipo_persona_id, estado_acceso_id) VALUES
 (1, 1, 1, 1, 1), (2, 2, 2, 1, 1), (3, 3, 3, 1, 1), (4, 4, 4, 2, 1), (5, 5, 5, 3, 1),
 (6, 6, 6, 1, 1), (7, 7, 7, 1, 1), (8, 8, 8, 4, 1), (9, 9, 9, 1, 1), (10, 10, 10, 1, 1),
 (11, 11, 11, 1, 2), (12, 12, 12, 2, 1), (13, 13, 13, 1, 1), (14, 14, 14, 5, 1), (15, 15, 15, 1, 1),
 (16, 16, 16, 1, 4), (17, 17, 17, 2, 1), (18, 18, 18, 1, 1), (19, 19, 19, 1, 1), (20, 20, 20, 1, 1);
-
--- =====================================================================
--- 5. VEHÍCULOS (20 Registros)
--- =====================================================================
 
 INSERT INTO vehiculos (placa, descripcion) VALUES
 ('AAA-111', 'Renault Logan Plata'), ('BBB-222', 'Chevrolet Tracker Blanca'), ('CCC-333', 'Kia Picanto Rojo'), ('DDD-444', 'Moto Yamaha BWS'), ('EEE-555', 'Toyota Hilux Gris'),
@@ -161,127 +173,101 @@ INSERT INTO persona_vehiculo (persona_id, vehiculo_placa) VALUES
 (11, 'KKK-111'), (12, 'LLL-222'), (13, 'MMM-333'), (14, 'NNN-444'), (15, 'OOO-555'), (16, 'PPP-666'), (17, 'QQQ-777'), (18, 'RRR-888'), (19, 'SSS-999'), (20, 'TTT-000');
 
 -- =====================================================================
--- 6. VISITAS E INCIDENTES (20 Registros)
+-- 5. VISITAS, TOKENS E INCIDENTES (20 Registros cada uno)
 -- =====================================================================
 
--- Estados: 1=Aprobado, 2=Pendiente, 4=Dentro, 5=Fuera
--- Métodos: 1=Manual, 2=Camara
 INSERT INTO visitas (id, persona_id, fecha_entrada, fecha_salida, estado_visita_id, visita_aprobada_por, metodo_ingreso_id, metodo_salida_id) VALUES
-(1, 1, '2026-11-18 07:00:00', '2026-11-18 12:00:00', 5, NULL, 2, 2), -- Salió por cámara
-(2, 2, '2026-11-18 07:15:00', NULL, 4, NULL, 2, NULL),                 -- Aún dentro
-(3, 3, '2026-11-18 07:30:00', '2026-11-18 13:00:00', 5, NULL, 1, 1), 
-(4, 4, '2026-11-18 08:00:00', NULL, 4, 3, 1, NULL),                    -- Invitado aprobado por usuario 3
-(5, 5, '2026-11-18 08:15:00', '2026-11-18 10:15:00', 5, NULL, 2, 2),
-(6, 6, '2026-11-18 08:20:00', NULL, 4, NULL, 2, NULL),
-(7, 7, '2026-11-18 08:30:00', '2026-11-18 11:30:00', 5, NULL, 1, 2), 
-(8, 8, '2026-11-18 09:00:00', NULL, 4, 7, 1, NULL),
-(9, 9, '2026-11-18 09:15:00', NULL, 4, NULL, 2, NULL),
-(10, 10, '2026-11-18 09:30:00', NULL, 2, NULL, 1, NULL),               -- Visitante Pendiente en portería
-(11, 11, '2026-11-18 09:45:00', '2026-11-18 10:00:00', 5, NULL, 2, 2),
-(12, 12, '2026-11-18 10:00:00', NULL, 4, 15, 1, NULL),
-(13, 13, '2026-11-18 10:15:00', NULL, 4, NULL, 2, NULL),
-(14, 14, '2026-11-18 10:30:00', '2026-11-18 11:00:00', 5, NULL, 1, 1),
-(15, 15, '2026-11-18 10:45:00', NULL, 4, NULL, 2, NULL),
-(16, 16, '2026-11-18 11:00:00', '2026-11-18 11:05:00', 3, NULL, 1, NULL), -- Rechazado en puerta (prohibición)
-(17, 17, '2026-11-18 11:15:00', NULL, 4, 17, 1, NULL),
-(18, 18, '2026-11-18 11:30:00', NULL, 4, NULL, 2, NULL),
-(19, 19, '2026-11-18 11:45:00', NULL, 4, NULL, 2, NULL),
-(20, 20, '2026-11-18 12:00:00', NULL, 4, NULL, 2, NULL);
+(1, 1, '2026-11-19 07:00:00', '2026-11-19 12:00:00', 5, NULL, 2, 2),
+(2, 2, '2026-11-19 07:15:00', NULL, 4, NULL, 2, NULL),
+(3, 3, '2026-11-19 07:30:00', '2026-11-19 13:00:00', 5, NULL, 1, 1),
+(4, 4, '2026-11-19 08:00:00', NULL, 4, 3, 5, NULL),
+(5, 5, '2026-11-19 08:15:00', '2026-11-19 10:15:00', 5, NULL, 2, 2),
+(6, 6, '2026-11-19 08:20:00', NULL, 4, NULL, 2, NULL),
+(7, 7, '2026-11-19 08:30:00', '2026-11-19 11:30:00', 5, NULL, 4, 2),
+(8, 8, '2026-11-19 09:00:00', NULL, 4, 7, 1, NULL),
+(9, 9, '2026-11-19 09:15:00', NULL, 4, NULL, 2, NULL),
+(10, 10, '2026-11-19 09:30:00', NULL, 2, NULL, 1, NULL),
+(11, 11, '2026-11-19 09:45:00', '2026-11-19 10:00:00', 5, NULL, 2, 2),
+(12, 12, '2026-11-19 10:00:00', NULL, 4, 15, 4, NULL),
+(13, 13, '2026-11-19 10:15:00', NULL, 4, NULL, 2, NULL),
+(14, 14, '2026-11-19 10:30:00', '2026-11-19 11:00:00', 5, NULL, 1, 1),
+(15, 15, '2026-11-19 10:45:00', NULL, 4, NULL, 2, NULL),
+(16, 16, '2026-11-19 11:00:00', '2026-11-19 11:05:00', 3, NULL, 1, NULL),
+(17, 17, '2026-11-19 11:15:00', NULL, 4, 17, 4, NULL),
+(18, 18, '2026-11-19 11:30:00', NULL, 4, NULL, 2, NULL),
+(19, 19, '2026-11-19 11:45:00', NULL, 4, NULL, 2, NULL),
+(20, 20, '2026-11-19 12:00:00', NULL, 4, NULL, 2, NULL);
 
 INSERT INTO visita_vehiculo (visita_id, vehiculo_placa) VALUES
 (1, 'AAA-111'), (2, 'BBB-222'), (3, 'CCC-333'), (4, 'DDD-444'), (5, 'EEE-555'), (6, 'FFF-666'), (7, 'GGG-777'), (8, 'HHH-888'), (9, 'III-999'), (10, 'JJJ-000'),
 (11, 'KKK-111'), (12, 'LLL-222'), (13, 'MMM-333'), (14, 'NNN-444'), (15, 'OOO-555'), (16, 'PPP-666'), (17, 'QQQ-777'), (18, 'RRR-888'), (19, 'SSS-999'), (20, 'TTT-000');
 
+INSERT INTO tokens_acceso (id, visita_id, codigo_token, tipo_token_id, estado_token_id, fecha_emision, fecha_expiracion) VALUES
+(1, 1, '834921', 1, 2, '2026-11-18 14:00:00', '2026-12-31 23:59:59'),
+(2, 2, 'QR-A1B2C3D4E5', 2, 2, '2026-11-18 15:30:00', '2026-12-31 23:59:59'),
+(3, 3, 'CB-9988776655', 3, 2, '2026-11-19 06:00:00', '2026-12-31 18:00:00'),
+(4, 4, '159263', 1, 1, '2026-11-19 07:45:00', '2026-12-31 23:59:59'),
+(5, 5, 'QR-X9Y8Z7W6V5', 2, 2, '2026-11-17 10:00:00', '2026-12-31 23:59:59'),
+(6, 6, '482019', 1, 2, '2026-11-19 08:00:00', '2026-12-31 23:59:59'),
+(7, 7, 'QR-F6G7H8I9J0', 2, 2, '2026-11-19 08:10:00', '2026-12-31 23:59:59'),
+(8, 8, 'CB-1122334455', 3, 1, '2026-11-19 08:30:00', '2026-12-31 23:59:59'),
+(9, 9, '739104', 1, 2, '2026-11-18 09:00:00', '2026-12-31 12:00:00'),
+(10, 10, 'QR-M4N5O6P7Q8', 2, 4, '2026-11-19 09:00:00', '2026-12-31 18:00:00'),
+(11, 11, '610293', 1, 2, '2026-11-19 09:15:00', '2026-12-31 23:59:59'),
+(12, 12, 'QR-R1S2T3U4V5', 2, 1, '2026-11-19 09:30:00', '2026-12-31 23:59:59'),
+(13, 13, 'CB-5544332211', 3, 2, '2026-11-18 10:00:00', '2026-12-31 23:59:59'),
+(14, 14, '902145', 1, 2, '2026-11-19 10:15:00', '2026-12-31 23:59:59'),
+(15, 15, 'QR-W9X8Y7Z6A5', 2, 2, '2026-11-19 10:30:00', '2026-12-31 23:59:59'),
+(16, 16, '384756', 1, 3, '2026-11-15 08:00:00', '2026-11-15 23:59:59'),
+(17, 17, 'QR-B1C2D3E4F5', 2, 1, '2026-11-19 11:00:00', '2026-12-31 23:59:59'),
+(18, 18, 'CB-6677889900', 3, 2, '2026-11-19 11:15:00', '2026-12-31 23:59:59'),
+(19, 19, '571920', 1, 2, '2026-11-19 11:30:00', '2026-12-31 23:59:59'),
+(20, 20, 'QR-G6H7I8J9K0', 2, 1, '2026-11-19 11:45:00', '2026-12-31 23:59:59');
+
 INSERT INTO incidentes (id, visita_id, reportado_por_id, fecha, descripcion) VALUES
-(1, 4, 2, '2026-11-18 08:05:00', 'Invitado ingresó sin casco a zona de bodegas'),
-(2, 6, 6, '2026-11-18 08:25:00', 'Trabajador olvidó el carnet, validado por cámara'),
-(3, 8, 2, '2026-11-18 09:10:00', 'Proveedor estacionó en zona de gerencia'),
-(4, 10, 6, '2026-11-18 09:35:00', 'Visitante alterado por tiempo de espera en portería'),
-(5, 16, 2, '2026-11-18 11:02:00', 'Intento de ingreso de persona con prohibición activa. Se retiró pacíficamente'),
-(6, 1, 6, '2026-11-18 12:05:00', 'Salida de vehículo con reporte de luces averiadas'),
-(7, 3, 2, '2026-11-18 07:35:00', 'Reporte de pérdida de gafete temporal'),
-(8, 7, 6, '2026-11-18 08:40:00', 'Ingreso de material sin guía de despacho'),
-(9, 12, 2, '2026-11-18 10:10:00', 'Visitante se desvió de la ruta asignada'),
-(10, 14, 6, '2026-11-18 10:40:00', 'Auditor solicitó escolta de seguridad'),
-(11, 2, 2, '2026-11-18 07:20:00', 'Activación accidental de alarma en puerta 2'),
-(12, 5, 6, '2026-11-18 08:20:00', 'Contratista ingresó herramientas no declaradas'),
-(13, 9, 2, '2026-11-18 09:20:00', 'Falla temporal en talanquera durante ingreso'),
-(14, 11, 6, '2026-11-18 09:50:00', 'Trabajador reportó pérdida de llaves de su vehículo'),
-(15, 13, 2, '2026-11-18 10:20:00', 'Derrame de líquido en zona de parqueo asignada'),
-(16, 15, 6, '2026-11-18 10:50:00', 'Conato de discusión en zona de fumadores'),
-(17, 17, 2, '2026-11-18 11:20:00', 'Invitado requirió asistencia médica leve (mareo)'),
-(18, 18, 6, '2026-11-18 11:35:00', 'Trabajador ingresó mascota no autorizada'),
-(19, 19, 2, '2026-11-18 11:50:00', 'Cámara biométrica requirió limpieza de lente'),
-(20, 20, 6, '2026-11-18 12:05:00', 'Vehículo goteando aceite en parqueadero principal');
+(1, 4, 2, '2026-11-19 08:05:00', 'Invitado ingreso sin casco a zona de bodegas'),
+(2, 6, 6, '2026-11-19 08:25:00', 'Trabajador olvido el carnet, validado por camara'),
+(3, 8, 2, '2026-11-19 09:10:00', 'Proveedor estaciono en zona de gerencia'),
+(4, 10, 6, '2026-11-19 09:35:00', 'Visitante alterado por tiempo de espera en porteria'),
+(5, 16, 2, '2026-11-19 11:02:00', 'Intento de ingreso de persona con prohibicion activa. Se retiro pacificamente'),
+(6, 1, 6, '2026-11-19 12:05:00', 'Salida de vehiculo con reporte de luces averiadas'),
+(7, 3, 2, '2026-11-19 07:35:00', 'Reporte de perdida de gafete temporal'),
+(8, 7, 6, '2026-11-19 08:40:00', 'Ingreso de material sin guia de despacho'),
+(9, 12, 2, '2026-11-19 10:10:00', 'Visitante se desvio de la ruta asignada'),
+(10, 14, 6, '2026-11-19 10:40:00', 'Auditor solicito escolta de seguridad'),
+(11, 2, 2, '2026-11-19 07:20:00', 'Activacion accidental de alarma en puerta 2'),
+(12, 5, 6, '2026-11-19 08:20:00', 'Contratista ingreso herramientas no declaradas'),
+(13, 9, 2, '2026-11-19 09:20:00', 'Falla temporal en talanquera durante ingreso'),
+(14, 11, 6, '2026-11-19 09:50:00', 'Trabajador reporto perdida de llaves de su vehiculo'),
+(15, 13, 2, '2026-11-19 10:20:00', 'Derrame de liquido en zona de parqueo asignada'),
+(16, 15, 6, '2026-11-19 10:50:00', 'Conato de discusion en zona de fumadores'),
+(17, 17, 2, '2026-11-19 11:20:00', 'Invitado requirio asistencia medica leve'),
+(18, 18, 6, '2026-11-19 11:35:00', 'Trabajador ingreso mascota no autorizada'),
+(19, 19, 2, '2026-11-19 11:50:00', 'Camara biometrica requirio limpieza de lente'),
+(20, 20, 6, '2026-11-19 12:05:00', 'Vehiculo goteando aceite en parqueadero principal');
 
 -- =====================================================================
--- 7. BITÁCORA DE AUDITORÍA (20 Registros)
+-- 6. BITÁCORA DE AUDITORÍA (20 Registros)
 -- =====================================================================
 
 INSERT INTO bitacora_auditoria (id, usuario_id, fecha_hora, accion_realizada, tabla_afectada, registro_id_afectado, detalles) VALUES
-(1, 1, '2026-11-18 06:00:00', 'LOGIN_EXITOSO', 'usuarios', 1, '{"ip": "192.168.1.5"}'),
-(2, 2, '2026-11-18 06:50:00', 'INICIO_TURNO_GUARDA', 'usuarios', 2, '{"puesto": "Entrada Principal"}'),
-(3, 2, '2026-11-18 07:00:00', 'CHECK_IN_BIOMETRICO', 'visitas', 1, '{"coincidencia": "99.1%"}'),
-(4, 2, '2026-11-18 07:15:00', 'CHECK_IN_BIOMETRICO', 'visitas', 2, '{"coincidencia": "98.5%"}'),
-(5, 6, '2026-11-18 07:30:00', 'CHECK_IN_MANUAL', 'visitas', 3, '{"metodo": "Cédula Física"}'),
-(6, 3, '2026-11-18 07:55:00', 'APROBACION_VISITA', 'visitas', 4, '{"funcionario": "Ana Gomez"}'),
-(7, 2, '2026-11-18 08:05:00', 'CREACION_INCIDENTE', 'incidentes', 1, '{"gravedad": "Baja"}'),
-(8, 2, '2026-11-18 08:15:00', 'CHECK_IN_BIOMETRICO', 'visitas', 5, '{"coincidencia": "97.8%"}'),
-(9, 6, '2026-11-18 08:25:00', 'CREACION_INCIDENTE', 'incidentes', 2, '{"gravedad": "Informativa"}'),
-(10, 7, '2026-11-18 08:50:00', 'APROBACION_VISITA', 'visitas', 8, '{"funcionario": "Elena Velez"}'),
-(11, 2, '2026-11-18 09:10:00', 'CREACION_INCIDENTE', 'incidentes', 3, '{"gravedad": "Media"}'),
-(12, 6, '2026-11-18 09:30:00', 'REGISTRO_VISITANTE_NUEVO', 'visitas', 10, '{"estado": "Pendiente"}'),
-(13, 6, '2026-11-18 09:35:00', 'CREACION_INCIDENTE', 'incidentes', 4, '{"gravedad": "Media"}'),
-(14, 2, '2026-11-18 10:00:00', 'CHECK_OUT_BIOMETRICO', 'visitas', 11, '{"coincidencia": "99.0%"}'),
-(15, 15, '2026-11-18 10:10:00', 'APROBACION_VISITA', 'visitas', 12, '{"funcionario": "Diana Herrera"}'),
-(16, 2, '2026-11-18 11:00:00', 'ACCESO_DENEGADO', 'visitas', 16, '{"motivo": "Persona con prohibición activa"}'),
-(17, 2, '2026-11-18 11:02:00', 'CREACION_INCIDENTE', 'incidentes', 5, '{"gravedad": "Alta"}'),
-(18, 17, '2026-11-18 11:10:00', 'APROBACION_VISITA', 'visitas', 17, '{"funcionario": "Natalia Rios"}'),
-(19, 2, '2026-11-18 12:00:00', 'CHECK_OUT_BIOMETRICO', 'visitas', 1, '{"coincidencia": "99.5%"}'),
-(20, 6, '2026-11-18 12:05:00', 'CREACION_INCIDENTE', 'incidentes', 20, '{"gravedad": "Baja"}');
-
--- =====================================================================
--- 1. CATÁLOGOS DE TOKENS (Tipos y Estados)
--- =====================================================================
-
-INSERT INTO tipos_token (id, nombre_tipo) VALUES
-(1, 'PIN_Numerico'),
-(2, 'Codigo_QR'),
-(3, 'Codigo_Barras');
-
-INSERT INTO token_estados (id, nombre_estado) VALUES
-(1, 'Emitido'),   -- Listo para ser usado en portería
-(2, 'Usado'),     -- Ya fue escaneado/digitado exitosamente
-(3, 'Expirado'),  -- Pasó la fecha límite sin ser usado
-(4, 'Revocado');  -- El funcionario canceló la visita antes de tiempo
-
--- (OPCIONAL) Recuerda agregar estos nuevos métodos al catálogo general si no lo hiciste:
--- INSERT INTO metodos_acceso (nombre_metodo) VALUES ('Lector_QR'), ('Teclado_PIN');
-
--- =====================================================================
--- 2. TRANSACCIONES DE TOKENS DE ACCESO (20 Registros)
--- =====================================================================
-
--- Enlazamos estos tokens a los IDs de la tabla 'visitas' (del 1 al 20)
--- Utilizamos fechas consistentes con el mes de Noviembre de 2026
-INSERT INTO tokens_acceso (id, visita_id, codigo_token, tipo_token_id, estado_token_id, fecha_emision, fecha_expiracion) VALUES
-(1, 1, '834921', 1, 2, '2026-11-17 14:00:00', '2026-11-18 23:59:59'),          -- Usado (Trabajador o invitado que ya ingresó)
-(2, 2, 'QR-A1B2C3D4E5', 2, 2, '2026-11-17 15:30:00', '2026-11-18 23:59:59'),   -- Usado (Visitante dentro del complejo)
-(3, 3, 'CB-9988776655', 3, 2, '2026-11-18 06:00:00', '2026-11-18 18:00:00'),   -- Usado
-(4, 4, '159263', 1, 1, '2026-11-18 07:45:00', '2026-11-18 23:59:59'),          -- Emitido (El invitado tiene el PIN, aún no entra)
-(5, 5, 'QR-X9Y8Z7W6V5', 2, 2, '2026-11-16 10:00:00', '2026-11-18 23:59:59'),   -- Usado
-(6, 6, '482019', 1, 2, '2026-11-18 08:00:00', '2026-11-18 23:59:59'),          -- Usado
-(7, 7, 'QR-F6G7H8I9J0', 2, 2, '2026-11-18 08:10:00', '2026-11-19 23:59:59'),   -- Usado
-(8, 8, 'CB-1122334455', 3, 1, '2026-11-18 08:30:00', '2026-11-18 23:59:59'),   -- Emitido (Proveedor con código de barras en ruta)
-(9, 9, '739104', 1, 2, '2026-11-17 09:00:00', '2026-11-18 12:00:00'),          -- Usado
-(10, 10, 'QR-M4N5O6P7Q8', 2, 4, '2026-11-18 09:00:00', '2026-11-18 18:00:00'), -- Revocado (El funcionario canceló la visita)
-(11, 11, '610293', 1, 2, '2026-11-18 09:15:00', '2026-11-18 23:59:59'),          -- Usado
-(12, 12, 'QR-R1S2T3U4V5', 2, 1, '2026-11-18 09:30:00', '2026-11-18 23:59:59'),   -- Emitido
-(13, 13, 'CB-5544332211', 3, 2, '2026-11-17 10:00:00', '2026-11-18 23:59:59'),   -- Usado
-(14, 14, '902145', 1, 2, '2026-11-18 10:15:00', '2026-11-18 23:59:59'),          -- Usado
-(15, 15, 'QR-W9X8Y7Z6A5', 2, 2, '2026-11-18 10:30:00', '2026-11-18 23:59:59'),   -- Usado
-(16, 16, '384756', 1, 3, '2026-11-15 08:00:00', '2026-11-15 23:59:59'),          -- Expirado (Persona no vino en la fecha acordada)
-(17, 17, 'QR-B1C2D3E4F5', 2, 1, '2026-11-18 11:00:00', '2026-11-19 23:59:59'),   -- Emitido
-(18, 18, 'CB-6677889900', 3, 2, '2026-11-18 11:15:00', '2026-11-18 23:59:59'),   -- Usado
-(19, 19, '571920', 1, 2, '2026-11-18 11:30:00', '2026-11-18 23:59:59'),          -- Usado
-(20, 20, 'QR-G6H7I8J9K0', 2, 1, '2026-11-18 11:45:00', '2026-11-18 23:59:59');   -- Emitido
+(1, 1, '2026-11-19 06:00:00', 'LOGIN_EXITOSO', 'usuarios', 1, '{"ip": "192.168.1.5"}'),
+(2, 2, '2026-11-19 06:50:00', 'INICIO_TURNO_GUARDA', 'usuarios', 2, '{"puesto": "Entrada Principal"}'),
+(3, 2, '2026-11-19 07:00:00', 'CHECK_IN_BIOMETRICO', 'visitas', 1, '{"coincidencia": "99.1%"}'),
+(4, 2, '2026-11-19 07:15:00', 'CHECK_IN_BIOMETRICO', 'visitas', 2, '{"coincidencia": "98.5%"}'),
+(5, 6, '2026-11-19 07:30:00', 'CHECK_IN_MANUAL', 'visitas', 3, '{"metodo": "Cedula Fisica"}'),
+(6, 3, '2026-11-19 07:55:00', 'APROBACION_VISITA', 'visitas', 4, '{"funcionario": "Ana Gomez"}'),
+(7, 2, '2026-11-19 08:05:00', 'CREACION_INCIDENTE', 'incidentes', 1, '{"gravedad": "Baja"}'),
+(8, 2, '2026-11-19 08:15:00', 'CHECK_IN_BIOMETRICO', 'visitas', 5, '{"coincidencia": "97.8%"}'),
+(9, 6, '2026-11-19 08:25:00', 'CREACION_INCIDENTE', 'incidentes', 2, '{"gravedad": "Informativa"}'),
+(10, 7, '2026-11-19 08:50:00', 'APROBACION_VISITA', 'visitas', 8, '{"funcionario": "Elena Velez"}'),
+(11, 2, '2026-11-19 09:10:00', 'CREACION_INCIDENTE', 'incidentes', 3, '{"gravedad": "Media"}'),
+(12, 6, '2026-11-19 09:30:00', 'REGISTRO_VISITANTE_NUEVO', 'visitas', 10, '{"estado": "Pendiente"}'),
+(13, 6, '2026-11-19 09:35:00', 'CREACION_INCIDENTE', 'incidentes', 4, '{"gravedad": "Media"}'),
+(14, 2, '2026-11-19 10:00:00', 'CHECK_OUT_BIOMETRICO', 'visitas', 11, '{"coincidencia": "99.0%"}'),
+(15, 15, '2026-11-19 10:10:00', 'APROBACION_VISITA', 'visitas', 12, '{"funcionario": "Diana Herrera"}'),
+(16, 2, '2026-11-19 11:00:00', 'ACCESO_DENEGADO', 'visitas', 16, '{"motivo": "Persona con prohibicion activa"}'),
+(17, 2, '2026-11-19 11:02:00', 'CREACION_INCIDENTE', 'incidentes', 5, '{"gravedad": "Alta"}'),
+(18, 17, '2026-11-19 11:10:00', 'APROBACION_VISITA', 'visitas', 17, '{"funcionario": "Natalia Rios"}'),
+(19, 2, '2026-11-19 12:00:00', 'CHECK_OUT_BIOMETRICO', 'visitas', 1, '{"coincidencia": "99.5%"}'),
+(20, 6, '2026-11-19 12:05:00', 'CREACION_INCIDENTE', 'incidentes', 20, '{"gravedad": "Baja"}');
