@@ -1,5 +1,8 @@
+
+USE defaultdb;
+
 -- =====================================================================
--- 1. TABLAS DE AUTENTICACIÓN Y AUTORIZACIÓN (RBAC NORMALIZADO)
+-- 1. AUTENTICACIÓN Y AUTORIZACIÓN (RBAC NORMALIZADO)
 -- =====================================================================
 
 CREATE TABLE permisos (
@@ -38,7 +41,7 @@ CREATE TABLE usuario_roles (
 );
 
 -- =====================================================================
--- 2. TABLAS DE CONSULTA (CATÁLOGOS PURISTAS - SIN ENUMS)
+-- 2. TABLAS DE CONSULTA (CATÁLOGOS - SIN ENUMS)
 -- =====================================================================
 
 CREATE TABLE tipos_persona (
@@ -70,6 +73,16 @@ CREATE TABLE tipos_correo (
 CREATE TABLE metodos_acceso (
     id INT AUTO_INCREMENT PRIMARY KEY,
     nombre_metodo VARCHAR(50) UNIQUE NOT NULL
+);
+
+CREATE TABLE tipos_token (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    nombre_tipo VARCHAR(50) UNIQUE NOT NULL
+);
+
+CREATE TABLE token_estados (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    nombre_estado VARCHAR(50) UNIQUE NOT NULL
 );
 
 -- =====================================================================
@@ -108,7 +121,7 @@ CREATE TABLE correos_contacto (
 );
 
 -- =====================================================================
--- 4. GESTIÓN DE PERSONAS Y BIOMETRÍA
+-- 4. GESTIÓN DE PERSONAS, BIOMETRÍA Y VEHÍCULOS
 -- =====================================================================
 
 CREATE TABLE personas (
@@ -145,7 +158,7 @@ CREATE TABLE persona_vehiculo (
 );
 
 -- =====================================================================
--- 5. TRANSACCIONES (VISITAS E INCIDENTES)
+-- 5. TRANSACCIONES (VISITAS, TOKENS E INCIDENTES)
 -- =====================================================================
 
 CREATE TABLE visitas (
@@ -170,6 +183,19 @@ CREATE TABLE visita_vehiculo (
     PRIMARY KEY (visita_id, vehiculo_placa),
     FOREIGN KEY (visita_id) REFERENCES visitas(id) ON DELETE CASCADE,
     FOREIGN KEY (vehiculo_placa) REFERENCES vehiculos(placa) ON DELETE CASCADE
+);
+
+CREATE TABLE tokens_acceso (
+    id BIGINT AUTO_INCREMENT PRIMARY KEY,
+    visita_id INT NOT NULL,
+    codigo_token VARCHAR(255) UNIQUE NOT NULL,
+    tipo_token_id INT NOT NULL,
+    estado_token_id INT NOT NULL,
+    fecha_emision DATETIME DEFAULT CURRENT_TIMESTAMP,
+    fecha_expiracion DATETIME NOT NULL,
+    FOREIGN KEY (visita_id) REFERENCES visitas(id) ON DELETE CASCADE,
+    FOREIGN KEY (tipo_token_id) REFERENCES tipos_token(id),
+    FOREIGN KEY (estado_token_id) REFERENCES token_estados(id)
 );
 
 CREATE TABLE incidentes (
@@ -198,27 +224,116 @@ CREATE TABLE bitacora_auditoria (
 );
 
 -- =====================================================================
--- 7. GESTIÓN DE TOKENS DE ACCESO
+-- 7. ÍNDICES PARA OPTIMIZAR EL POLLING EN LA NUBE
 -- =====================================================================
-CREATE TABLE tipos_token (
-    id INT AUTO_INCREMENT PRIMARY KEY,
-    nombre_tipo VARCHAR(50) UNIQUE NOT NULL -- Ej: 'PIN_Numerico', 'QR', 'Codigo_Barras'
-);
 
-CREATE TABLE token_estados (
-    id INT AUTO_INCREMENT PRIMARY KEY,
-    nombre_estado VARCHAR(50) UNIQUE NOT NULL -- Ej: 'Emitido', 'Usado', 'Expirado', 'Revocado'
-);
+CREATE INDEX idx_visitas_estado ON visitas(estado_visita_id);
+CREATE INDEX idx_visitas_persona ON visitas(persona_id);
+CREATE INDEX idx_tokens_codigo ON tokens_acceso(codigo_token);
 
-CREATE TABLE tokens_acceso (
-    id BIGINT AUTO_INCREMENT PRIMARY KEY,
-    visita_id INT NOT NULL, 
-    codigo_token VARCHAR(255) UNIQUE NOT NULL, -- El PIN o el hash del QR
-    tipo_token_id INT NOT NULL,
-    estado_token_id INT NOT NULL,
-    fecha_emision DATETIME DEFAULT CURRENT_TIMESTAMP,
-    fecha_expiracion DATETIME NOT NULL,
-    FOREIGN KEY (visita_id) REFERENCES visitas(id) ON DELETE CASCADE,
-    FOREIGN KEY (tipo_token_id) REFERENCES tipos_token(id),
-    FOREIGN KEY (estado_token_id) REFERENCES token_estados(id)
-);
+-- =====================================================================
+-- 8. VISTAS (VIEWS) PARA CONSULTAS LIMPIAS EN JAVA
+-- =====================================================================
+
+CREATE OR REPLACE VIEW vw_perfiles_completos AS
+SELECT 
+    p.id AS persona_id,
+    p.nombre AS nombre_persona,
+    p.documento_identidad,
+    p.url_foto,
+    p.vector_biometrico,
+    e.id AS empresa_id,
+    e.nombre AS nombre_empresa,
+    tp.nombre_tipo AS tipo_persona,
+    pea.nombre_estado AS estado_acceso
+FROM personas p
+JOIN perfiles_persona pp ON p.id = pp.persona_id
+JOIN empresas e ON pp.empresa_id = e.id
+JOIN tipos_persona tp ON pp.tipo_persona_id = tp.id
+JOIN persona_estados_acceso pea ON pp.estado_acceso_id = pea.id;
+
+CREATE OR REPLACE VIEW vw_aforo_actual AS
+SELECT 
+    v.id AS visita_id,
+    p.nombre AS nombre_persona,
+    p.documento_identidad,
+    e.nombre AS empresa,
+    tp.nombre_tipo AS tipo_persona,
+    v.fecha_entrada,
+    ma.nombre_metodo AS metodo_ingreso
+FROM visitas v
+JOIN personas p ON v.persona_id = p.id
+JOIN perfiles_persona pp ON p.id = pp.persona_id
+JOIN empresas e ON pp.empresa_id = e.id
+JOIN tipos_persona tp ON pp.tipo_persona_id = tp.id
+JOIN visita_estados ve ON v.estado_visita_id = ve.id
+JOIN metodos_acceso ma ON v.metodo_ingreso_id = ma.id
+WHERE ve.nombre_estado = 'Dentro';
+
+CREATE OR REPLACE VIEW vw_visitas_pendientes AS
+SELECT 
+    v.id AS visita_id,
+    p.nombre AS visitante,
+    p.documento_identidad,
+    e.nombre AS empresa_destino,
+    v.fecha_entrada AS hora_solicitud
+FROM visitas v
+JOIN personas p ON v.persona_id = p.id
+JOIN perfiles_persona pp ON p.id = pp.persona_id
+JOIN empresas e ON pp.empresa_id = e.id
+JOIN visita_estados ve ON v.estado_visita_id = ve.id
+WHERE ve.nombre_estado = 'Pendiente Aprobacion';
+
+-- =====================================================================
+-- 9. FUNCIONES (FUNCTIONS) DE VALIDACIÓN
+-- =====================================================================
+
+DROP FUNCTION IF EXISTS fn_tiene_visita_abierta;
+DROP FUNCTION IF EXISTS fn_validar_estado_token;
+
+DELIMITER //
+
+CREATE FUNCTION fn_tiene_visita_abierta(p_persona_id INT) 
+RETURNS BOOLEAN
+DETERMINISTIC
+READS SQL DATA
+BEGIN
+    DECLARE v_cantidad INT;
+    SELECT COUNT(*) INTO v_cantidad
+    FROM visitas v
+    JOIN visita_estados ve ON v.estado_visita_id = ve.id
+    WHERE v.persona_id = p_persona_id 
+      AND ve.nombre_estado = 'Dentro';
+    
+    RETURN v_cantidad > 0;
+END //
+
+CREATE FUNCTION fn_validar_estado_token(p_codigo VARCHAR(255)) 
+RETURNS VARCHAR(50)
+DETERMINISTIC
+READS SQL DATA
+BEGIN
+    DECLARE v_estado VARCHAR(50);
+    DECLARE v_expiracion DATETIME;
+    
+    SELECT te.nombre_estado, ta.fecha_expiracion 
+    INTO v_estado, v_expiracion
+    FROM tokens_acceso ta
+    JOIN token_estados te ON ta.estado_token_id = te.id
+    WHERE ta.codigo_token = p_codigo
+    LIMIT 1;
+    
+    IF v_estado IS NULL THEN
+        RETURN 'TOKEN_NO_EXISTE';
+    ELSEIF v_estado = 'Usado' THEN
+        RETURN 'TOKEN_YA_USADO';
+    ELSEIF v_estado = 'Revocado' THEN
+        RETURN 'TOKEN_REVOCADO';
+    ELSEIF NOW() > v_expiracion THEN
+        RETURN 'TOKEN_EXPIRADO';
+    ELSE
+        RETURN 'VALIDO';
+    END IF;
+END //
+
+DELIMITER ;
