@@ -1,0 +1,15 @@
+# Compilados y artefactos de Maven
+target/
+**/target/
+
+# IDEs y Editores
+.idea/
+*.iml
+.vscode/
+
+# Sistema Operativo
+.DS_Store
+Thumbs.db
+
+# Configuración local con secretos
+src/main/resources/config.properties
