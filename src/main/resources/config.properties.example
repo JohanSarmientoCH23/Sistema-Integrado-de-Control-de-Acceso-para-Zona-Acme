@@ -1,0 +1,8 @@
+db.url=jdbc:mysql://mysql-2bfd872c-sica-proyecto.g.aivencloud.com:13481/defaultdb?sslMode=REQUIRED&useUnicode=true&characterEncoding=UTF-8&serverTimezone=America/Bogota
+db.user=avnadmin
+db.password=PEGA_AQUI_TU_PASSWORD_DE_AIVEN
+mail.smtp.host=smtp.gmail.com
+mail.smtp.port=587
+mail.user=
+mail.password=
+polling.interval.seconds=3
